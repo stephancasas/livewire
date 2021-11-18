@@ -8,6 +8,8 @@ use Illuminate\Testing\TestResponse;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Collection;
+use Livewire\HydrationMiddleware\PropertyHydrators\CollectionHydrator;
 use Illuminate\View\ComponentAttributeBag;
 use Livewire\Controllers\FileUploadHandler;
 use Livewire\Controllers\FilePreviewHandler;
@@ -87,8 +89,12 @@ class LivewireServiceProvider extends ServiceProvider
     protected function registerLivewireSingleton()
     {
         $this->app->singleton(LivewireManager::class);
+        $this->app->singleton(PropertyHydratorManager::class);
 
         $this->app->alias(LivewireManager::class, 'livewire');
+        $this->app->alias(PropertyHydratorManager::class, 'livewire.property-manager');
+       
+        PropertyHydrator::register(Collection::class, CollectionHydrator::class);
     }
 
     protected function registerComponentAutoDiscovery()

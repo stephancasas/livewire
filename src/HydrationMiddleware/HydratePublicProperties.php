@@ -2,25 +2,28 @@
 
 namespace Livewire\HydrationMiddleware;
 
-use Livewire\Exceptions\PublicPropertyTypeNotAllowedException;
-use Illuminate\Queue\SerializesAndRestoresModelIdentifiers;
-use Illuminate\Contracts\Queue\QueueableCollection;
-use Illuminate\Contracts\Database\ModelIdentifier;
-use Illuminate\Support\Carbon as IlluminateCarbon;
-use Illuminate\Contracts\Queue\QueueableEntity;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Stringable;
+use DateTime;
+use stdClass;
+use Carbon\Carbon;
+use DateTimeImmutable;
+use DateTimeInterface;
+use Livewire\Wireable;
+use ReflectionProperty;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Carbon\CarbonImmutable;
-use ReflectionProperty;
-use Livewire\Wireable;
-use DateTimeImmutable;
-use Carbon\Carbon;
-use DateTime;
-use DateTimeInterface;
-use stdClass;
+use Livewire\PropertyHydrator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Stringable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Contracts\Queue\QueueableEntity;
+use Illuminate\Contracts\Database\ModelIdentifier;
+use Illuminate\Support\Carbon as IlluminateCarbon;
+use Illuminate\Contracts\Queue\QueueableCollection;
+use Illuminate\Queue\SerializesAndRestoresModelIdentifiers;
+use Livewire\Exceptions\PublicPropertyTypeNotAllowedException;
+use Livewire\HydrationMiddleware\PropertyHydrators\CollectionHydrator;
+use Livewire\PropertyHydratorManager;
 
 class HydratePublicProperties implements HydrationMiddleware
 {
@@ -28,10 +31,24 @@ class HydratePublicProperties implements HydrationMiddleware
 
     public static function hydrate($instance, $request)
     {
+
         $publicProperties = $request->memo['data'] ?? [];
 
+        $dataMeta = data_get($request, 'memo.dataMeta');
+       
+        foreach ($dataMeta as $key => $value) {
+            if ($hydrator = PropertyHydrator::getByKey($key)) {
+                foreach ($dataMeta[$key] as $propertyName => $metaData) {
+                    data_set(
+                        $instance,
+                        $propertyName,
+                        $hydrator->hydrate($publicProperties[$propertyName])
+                    );
+                }
+            }
+        }
+
         $dates = data_get($request, 'memo.dataMeta.dates', []);
-        $collections = data_get($request, 'memo.dataMeta.collections', []);
         $models = data_get($request, 'memo.dataMeta.models', []);
         $modelCollections = data_get($request, 'memo.dataMeta.modelCollections', []);
         $stringables = data_get($request, 'memo.dataMeta.stringables', []);
@@ -48,8 +65,6 @@ class HydratePublicProperties implements HydrationMiddleware
                 ];
 
                 data_set($instance, $property, new $types[$type]($value));
-            } else if (in_array($property, $collections)) {
-                data_set($instance, $property, collect($value));
             } else if ($serialized = data_get($models, $property)) {
                 static::hydrateModel($serialized, $property, $request, $instance);
             } else if ($serialized = data_get($modelCollections, $property)) {
@@ -89,6 +104,14 @@ class HydratePublicProperties implements HydrationMiddleware
         data_set($response, 'memo.dataMeta', []);
 
         array_walk($publicData, function ($value, $key) use ($instance, $response) {
+            if (is_object($value) && $hydrator = PropertyHydrator::getByType(get_class($value))) { 
+                $response->memo['dataMeta'][$hydrator->key][$key] = null;
+
+                data_set($response, 'memo.data.'.$key, $hydrator->dehydrate($value));
+               
+                return;
+            }
+
             if (
                 // The value is a supported type, set it in the data, if not, throw an exception for the user.
                 is_bool($value) || is_null($value) || is_array($value) || is_numeric($value) || is_string($value)
@@ -102,10 +125,6 @@ class HydratePublicProperties implements HydrationMiddleware
                 static::dehydrateModel($value, $key, $response, $instance);
             } else if ($value instanceof QueueableCollection) {
                 static::dehydrateModels($value, $key, $response, $instance);
-            } else if ($value instanceof Collection) {
-                $response->memo['dataMeta']['collections'][] = $key;
-
-                data_set($response, 'memo.data.'.$key, $value->toArray());
             } else if ($value instanceof DateTimeInterface) {
                 if ($value instanceof IlluminateCarbon) {
                     $response->memo['dataMeta']['dates'][$key] = 'illuminate';
