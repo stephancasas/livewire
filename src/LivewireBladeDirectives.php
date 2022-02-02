@@ -83,13 +83,17 @@ echo \$html;
 EOT;
     }
 
-    public static function stack($name, $default = '') {
+    public static function stack($name, $default = "''") {
         $expression = rtrim("{$name}, {$default}", ', ');
 
         return "
+            <?php if (in_array(${name}, \Livewire\LivewireManager::\$livewirefiedBladeStacks)) : ?>
             <template livewire-stack=\"<?php echo {$name}; ?>\"></template>
+            <?php endif; ?>
             <?php echo \$__env->yieldPushContent($expression); ?>
+            <?php if (in_array(${name}, \Livewire\LivewireManager::\$livewirefiedBladeStacks)) : ?>
             <template livewire-end-stack=\"<?php echo {$name}; ?>\"></template>
+            <?php endif; ?>
         ";
     }
 
@@ -111,51 +115,67 @@ EOT;
         ?>";
     }
 
-    public static function push($name, $content = '') {
+    public static function push($name, $content = "''") {
         $randomKey = Str::random(9);
-        $expression = rtrim("{$name}, {$content}", ', ');
 
         return "<?php
-            if (isset(\$_instance)) {
+            \$__is_livewirefied = str_starts_with(${name}, 'livewire:');
+            \$__stack_name = str_replace('livewire:', '', {$name});
+
+            if (isset(\$_instance) && \$__is_livewirefied) {
+                \Livewire\LivewireManager::\$livewirefiedBladeStacks[] = \$__stack_name;
+
                 \$__stack_item_key = isset(\$__stack_once) ? crc32(\$__path) : '{$randomKey}';
 
-                \$__env->startPush({$expression});
-
-                \$__stack_name = {$name};
+                \$__env->startPush(\$__stack_name, {$content});
 
                 ob_start();
 
                 echo '<template livewire-stack-key=\"'.\$__stack_item_key.'\"></template>';
             } else {
-                \$__env->startPush({$expression});
+                \$__env->startPush(\$__stack_name, {$content});
             }
+
+            unset(\$__is_livewirefied);
         ?>";
     }
 
-    public static function prepend($name, $content = '') {
+    public static function pushOnce($name, $id = null) {
+        return static::once($id).static::push($name);
+    }
+
+    public static function prepend($name, $content = "''") {
         $randomKey = Str::random(9);
         $expression = rtrim("{$name}, {$content}", ', ');
 
         return "<?php
-            if (isset(\$_instance)) {
+            \$__is_livewirefied = str_starts_with(${name}, 'livewire:');
+            \$__stack_name = str_replace('livewire:', '', {$name});
+
+            if (isset(\$_instance) && \$__is_livewirefied) {
+                \Livewire\LivewireManager::\$livewirefiedBladeStacks[] = \$__stack_name;
+                
                 \$__stack_item_key = isset(\$__stack_once) ? crc32(\$__path) : '{$randomKey}';
 
-                \$__env->startPrepend({$expression});
-
-                \$__stack_name = {$name};
+                \$__env->startPrepend(\$__stack_name, {$content});
 
                 ob_start();
 
                 echo '<template livewire-stack-key=\"'.\$__stack_item_key.'\"></template>';
             } else {
-                \$__env->startPrepend({$expression});
+                \$__env->startPrepend(\$__stack_name, {$content});
             }
+
+            unset(\$__is_livewirefied);
         ?>";
+    }
+    public static function prependOnce($name, $id = null) {
+        return static::once($id).static::prepend($name);
     }
 
     public static function endpush() {
         return "<?php
-            if (isset(\$_instance)) {
+            if (isset(\$_instance) && isset(\$__stack_item_key)) {
                 \$__contents = ob_get_clean();
 
                 \$_instance->addToStack(\$__stack_name, 'push', \$__contents, \$__stack_item_key);
@@ -173,9 +193,13 @@ EOT;
         ?>";
     }
 
+    public static function endpushOnce() {
+        return static::endpush().static::endonce();
+    }
+
     public static function endprepend() {
         return "<?php
-            if (isset(\$_instance)) {
+            if (isset(\$_instance) && isset(\$__stack_item_key)) {
                 \$__contents = ob_get_clean();
 
                 \$_instance->addToStack(\$__stack_name, 'prepend', \$__contents, \$__stack_item_key);
@@ -191,5 +215,16 @@ EOT;
                 \$__env->stopPrepend();
             }
         ?>";
+    }
+
+    public static function endprependOnce() {
+        return static::endprepend().static::endonce();
+    }
+
+    public static function stripQuotes(string $value)
+    {
+        return Str::startsWith($value, ['"', '\''])
+                    ? substr($value, 1, -1)
+                    : $value;
     }
 }

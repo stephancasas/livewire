@@ -26,7 +26,7 @@ class ChildComponent extends BaseComponent
 </div>
 
 @once
-    @push('scripts')
+    @push(Livewire::toStack('scripts'))
         <script>window.stack_output.push('child-scripts')</script>
     @endpush
 @endonce

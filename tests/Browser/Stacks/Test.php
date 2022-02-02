@@ -7,6 +7,7 @@ use Tests\Browser\TestCase;
 
 class Test extends TestCase
 {
+    /** @test */
     public function conditionally_loaded_component_can_push_and_preppend_to_stack()
     {
         $this->browse(function ($browser) {

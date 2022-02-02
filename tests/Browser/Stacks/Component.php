@@ -24,13 +24,13 @@ class Component extends BaseComponent
 </div>
 
 @once
-    @push('styles')
+    @push(Livewire::toStack('styles'))
         <script>window.stack_output.push('parent-styles')</script>
     @endpush
 @endonce
 
 @once
-    @prepend('scripts')
+    @prepend(Livewire::toStack('scripts'))
         <script>window.stack_output.push('parent-scripts')</script>
     @endprepend
 @endonce

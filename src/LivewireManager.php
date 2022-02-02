@@ -31,6 +31,8 @@ class LivewireManager
     public static $currentCompilingViewPath;
     public static $currentCompilingChildCounter;
 
+    public static $livewirefiedBladeStacks = [];
+
     public function component($alias, $viewClass = null)
     {
         if (is_null($viewClass)) {
@@ -461,9 +463,15 @@ HTML;
     {
         static::$currentCompilingChildCounter = null;
         static::$currentCompilingViewPath = null;
+        static::$livewirefiedBladeStacks = [];
         
         $this->shouldDisableBackButtonCache = false;
 
         $this->dispatch('flush-state');
+    }
+
+    public function toStack($stack)
+    {
+        return 'livewire:'.$stack;
     }
 }

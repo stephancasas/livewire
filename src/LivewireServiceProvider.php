@@ -289,13 +289,17 @@ class LivewireServiceProvider extends ServiceProvider
         Blade::directive('livewireScripts', [LivewireBladeDirectives::class, 'livewireScripts']);
 
         // Uncomment to get @stacks working in Livewire.
-        // Blade::directive('stack', [LivewireBladeDirectives::class, 'stack']);
-        // Blade::directive('once', [LivewireBladeDirectives::class, 'once']);
-        // Blade::directive('endonce', [LivewireBladeDirectives::class, 'endonce']);
-        // Blade::directive('push', [LivewireBladeDirectives::class, 'push']);
-        // Blade::directive('endpush', [LivewireBladeDirectives::class, 'endpush']);
-        // Blade::directive('prepend', [LivewireBladeDirectives::class, 'prepend']);
-        // Blade::directive('endprepend', [LivewireBladeDirectives::class, 'endprepend']);
+        Blade::directive('stack', [LivewireBladeDirectives::class, 'stack']);
+        Blade::directive('once', [LivewireBladeDirectives::class, 'once']);
+        Blade::directive('endonce', [LivewireBladeDirectives::class, 'endonce']);
+        Blade::directive('push', [LivewireBladeDirectives::class, 'push']);
+        Blade::directive('pushOnce', [LivewireBladeDirectives::class, 'pushOnce']);
+        Blade::directive('endpush', [LivewireBladeDirectives::class, 'endpush']);
+        Blade::directive('endpushOnce', [LivewireBladeDirectives::class, 'endpushOnce']);
+        Blade::directive('prepend', [LivewireBladeDirectives::class, 'prepend']);
+        Blade::directive('prependOnce', [LivewireBladeDirectives::class, 'prependOnce']);
+        Blade::directive('endprepend', [LivewireBladeDirectives::class, 'endprepend']);
+        Blade::directive('endprependOnce', [LivewireBladeDirectives::class, 'endprependOnce']);
     }
 
     protected function registerViewCompilerEngine()
