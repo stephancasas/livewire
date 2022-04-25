@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Livewire\Exceptions\MissingRulesException;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Foundation\Http\FormRequest;
 use Livewire\HydrationMiddleware\HydratePublicProperties;
 
 trait ValidatesInput
@@ -80,7 +81,14 @@ trait ValidatesInput
     protected function getRules()
     {
         if (method_exists($this, 'rules')) return $this->rules();
-        if (property_exists($this, 'rules')) return $this->rules;
+        if (method_exists($this, 'rules')) return $this->rules();
+        if (property_exists($this, 'rules')) {
+            if (class_exists($this->rules) && is_subclass_of($this->rules, FormRequest::class)) {
+                return (new $this->rules)->rules();
+            }
+
+            return $this->rules;
+        }
 
         return [];
     }
