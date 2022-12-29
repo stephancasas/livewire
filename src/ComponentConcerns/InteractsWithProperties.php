@@ -168,7 +168,15 @@ trait InteractsWithProperties
         foreach ($properties as $property) {
             $freshInstance = new static($this->id);
 
-            $this->{$property} = $freshInstance->{$property};
+            if (isset($freshInstance->{$property})) {
+                $this->{$property} = $freshInstance->{$property};
+            } else {
+                if ((new \ReflectionObject($this))->getProperty($property)->hasDefaultValue()) {
+                    $this->{$property} = $freshInstance->{$property}; 
+                } else {
+                    unset($this->{$property});
+                }
+            }
         }
     }
     
